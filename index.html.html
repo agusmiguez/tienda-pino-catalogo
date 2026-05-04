@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIENDA PINO — Catálogo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f9fafb;
+    color: #111827;
+    font-size: 15px;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+  /* ═══ HEADER ═══ */
+  .header {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .header-inner {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    gap: 12px;
+  }
+  .brand {
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -.02em;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e5e7eb;
+  }
+  .nav-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all .15s;
+    height: 58px;
+  }
+  .nav-tab:hover { color: #111827; }
+  .nav-tab.active { color: #16a34a; font-weight: 700; border-bottom-color: #16a34a; }
+
+  /* Carrito btn */
+  .cart-btn {
+    position: relative;
+    background: none;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .cart-btn:hover { border-color: #16a34a; color: #16a34a; }
+  .cart-count {
+    background: #16a34a;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+    display: none;
+  }
+  .cart-count.visible { display: inline-block; }
+
+  /* ═══ HERO ═══ */
+  .hero {
+    background: #16a34a;
+    padding: 36px 16px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: -20px; left: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    pointer-events: none;
+  }
+  .hero-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .hero-logo {
+    width: 90px;
+    height: 90px;
+    border-radius: 20px;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,.3);
+    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+  }
+  .hero-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.7);
+    margin-bottom: 6px;
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    margin-bottom: 5px;
+  }
+  .hero-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,.7);
+    margin-bottom: 18px;
+  }
+
+  /* ═══ WRAPPER ═══ */
+  .wrapper { max-width: 1140px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  /* ═══ SECTION ═══ */
+  .section { margin-bottom: 32px; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -.01em;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .section-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  /* ═══ GRID ═══ */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+  }
+
+  /* ═══ CARD ═══ */
+  .card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow .15s, transform .15s, border-color .15s;
+  }
+  .card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,.1);
+    transform: translateY(-2px);
+    border-color: #d1d5db;
+  }
+  .card-img {
+    aspect-ratio: 1;
+    background: #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+    position: relative;
+  }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: .03em;
+  }
+  .badge-verde  { background: #dcfce7; color: #15803d; }
+  .badge-azul   { background: #dbeafe; color: #1d4ed8; }
+  .badge-naranja{ background: #ffedd5; color: #c2410c; }
+  .badge-rojo   { background: #fee2e2; color: #dc2626; }
+  .card-body { padding: 12px 13px 14px; }
+  .card-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+    letter-spacing: -.01em;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #16a34a;
+    margin-bottom: 7px;
+  }
+  .talles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 2px;
+  }
+  .talle {
+    font-size: 10px;
+    font-weight: 600;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+  .talle.talle-size { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+
+  /* ═══ EMPTY ═══ */
+  .empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: #9ca3af;
+    font-size: 14px;
+  }
+  .empty .ei { font-size: 36px; margin-bottom: 10px; }
+
+  /* ═══ ANIMATIONS ═══ */
+  @keyframes up { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+  @keyframes sl { from { transform:translateX(110%); opacity:0 } to { transform:translateX(0); opacity:1 } }
+  .anim { animation: up .3s ease both; }
+
+  /* ═══════════════════════════════════════
+     DETALLE DE PRODUCTO (página 2)
+  ═══════════════════════════════════════ */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    padding: 0 0 16px 0;
+  }
+  .back-btn:hover { color: #111827; }
+
+  .detail-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  .detail-img {
+    aspect-ratio: 1;
+    background: #f3f4f6;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 100px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .detail-img img { width: 100%; height: 100%; object-fit: cover; }
+  .detail-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .detail-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -.02em;
+    margin-bottom: 6px;
+  }
+  .detail-desc {
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.55;
+    margin-bottom: 18px;
+  }
+  .detail-price {
+    font-size: 24px;
+    font-weight: 800;
+    color: #16a34a;
+    margin-bottom: 24px;
+  }
+
+  /* Selector talle */
+  .size-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .size-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .size-btn {
+    min-width: 48px;
+    padding: 9px 14px;
+    border-radius: 9px;
+    border: 1.5px solid #e5e7eb;
+    background: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+  }
+  .size-btn:hover { border-color: #16a34a; color: #16a34a; }
+  .size-btn.selected {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+  }
+  .size-btn.no-size { display: none; } /* ocultamos si no aplica */
+
+  /* Cantidad */
+  .qty-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    width: fit-content;
+    margin-bottom: 24px;
+  }
+  .qty-btn {
+    background: #f9fafb;
+    border: none;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #374151;
+    font-family: 'Inter', sans-serif;
+    transition: background .12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-btn:hover { background: #f0fdf4; color: #16a34a; }
+  .qty-val {
+    width: 40px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    border-left: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    height: 40px;
+    line-height: 40px;
+  }
+
+  /* Botón agregar */
+  .add-btn {
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: all .15s;
+    letter-spacing: -.01em;
+  }
+  .add-btn:hover { background: #15803d; }
+  .add-btn:active { transform: scale(.98); }
+  .add-btn:disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+
+  /* Nota si se requiere talle */
+  .size-required-note {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 8px;
+    display: none;
+  }
+  .size-required-note.visible { display: block; }
+
+  /* ═══════════════════════════════════════
+     CARRITO (drawer)
+  ═══════════════════════════════════════ */
+  .cart-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .cart-overlay.open { display: flex; }
+
+  .cart-drawer {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 36px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.15);
+    animation: sl .25s ease;
+  }
+  @keyframes up2 { from { transform:translateY(40px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+  .cart-drawer { animation: up2 .25s ease both; }
+
+  .cart-handle {
+    width: 36px; height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    margin: 14px auto 4px;
+  }
+  .cart-header {
+    padding: 10px 20px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cart-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+  }
+  .cart-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #9ca3af;
+    line-height: 1;
+  }
+  .cart-items { padding: 8px 20px; }
+  .cart-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .cart-item-icon {
+    width: 44px; height: 44px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 1px solid #e5e7eb;
+  }
+  .cart-item-info { flex: 1; min-width: 0; }
+  .cart-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cart-item-sub {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .cart-item-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #16a34a;
+    flex-shrink: 0;
+  }
+  .cart-item-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #d1d5db;
+    font-size: 16px;
+    transition: color .12s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .cart-item-remove:hover { color: #dc2626; }
+
+  .cart-empty {
+    text-align: center;
+    padding: 36px 16px;
+    color: #9ca3af;
+    font-size: 14px;
+  }
+  .cart-empty .ei { font-size: 32px; margin-bottom: 8px; }
+
+  .cart-footer {
+    padding: 14px 20px 0;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 4px;
+  }
+  .cart-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .cart-total-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+  .cart-total-amount {
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+  }
+  .cart-checkout-btn {
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: all .15s;
+  }
+  .cart-checkout-btn:hover { background: #15803d; }
+  .cart-checkout-btn:active { transform: scale(.98); }
+
+  /* ═══ TOAST ═══ */
+  .toast {
+    display: none;
+    position: fixed;
+    top: 72px;
+    right: 16px;
+    left: 16px;
+    z-index: 9999;
+    max-width: 380px;
+    margin: 0 auto;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    animation: sl .25s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    text-align: center;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="brand" onclick="goToCatalog()">
+      <img id="headerLogo" class="brand-logo" src="" alt="Tienda Pino">
+      TIENDA PINO
+    </div>
+    <nav class="nav-tabs" id="nav"></nav>
+    <button class="cart-btn" onclick="openCart()">
+      🛒 Carrito
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════
+     PÁGINA 1: CATÁLOGO
+══════════════════════════════ -->
+<div id="pageCatalog" class="page active">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-logo-wrap">
+      <img id="heroLogo" class="hero-logo" src="" alt="Tienda Pino">
+    </div>
+    <div class="hero-eyebrow">Colección 2026</div>
+    <h1 class="hero-title">TIENDA PINO</h1>
+    <p class="hero-sub">Ropa, gorras y accesorios</p>
+  </div>
+
+  <!-- CATÁLOGO -->
+  <div class="wrapper">
+    <div id="catalogContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     PÁGINA 2: DETALLE
+══════════════════════════════ -->
+<div id="pageDetail" class="page">
+  <div class="detail-wrap">
+    <button class="back-btn" onclick="goToCatalog()">← Volver al catálogo</button>
+    <div class="detail-img" id="detailImg"></div>
+    <div class="detail-name" id="detailName"></div>
+    <div class="detail-desc" id="detailDesc"></div>
+    <div class="detail-price" id="detailPrice"></div>
+
+    <span class="size-label" id="sizeLabel">Talle</span>
+    <div class="size-grid" id="sizeGrid"></div>
+    <p class="size-required-note" id="sizeNote">Por favor seleccioná un talle antes de continuar.</p>
+
+    <span class="qty-label">Cantidad</span>
+    <div class="qty-control">
+      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <div class="qty-val" id="qtyVal">1</div>
+      <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+
+    <button class="add-btn" id="addBtn" onclick="addToCart()">Agregar al carrito</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     CARRITO (DRAWER)
+══════════════════════════════ -->
+<div class="cart-overlay" id="cartOverlay" onclick="closeCartOnOverlay(event)">
+  <div class="cart-drawer">
+    <div class="cart-handle"></div>
+    <div class="cart-header">
+      <span class="cart-title">🛒 Mi carrito</span>
+      <button class="cart-close" onclick="closeCart()">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer" id="cartFooter" style="display:none;">
+      <div class="cart-total-row">
+        <span class="cart-total-label">Total</span>
+        <span class="cart-total-amount" id="cartTotal"></span>
+      </div>
+      <button class="cart-checkout-btn" onclick="checkout()">Confirmar pedido 🎉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// LOGO (base64 desde logo.js)
+// ════════════════════════════════════════════
+const LOGO_B64 = "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";
+
+const fmt = n => '$' + new Intl.NumberFormat('es-AR').format(n);
+const SIZES_SET = new Set(['XS','S','M','L','XL','XXL','U']);
+const BADGE_CLS = { 'Nuevo': 'badge-verde', 'Más vendido': 'badge-azul', 'Limitado': 'badge-naranja', 'Agotado': 'badge-rojo' };
+
+// ════════════════════════════════════════════
+// CATEGORÍAS
+// ════════════════════════════════════════════
+const CATS = [
+  { id: 'prendas',    label: 'Prendas',    icon: '👕' },
+  { id: 'gorras',     label: 'Gorras',     icon: '🧢' },
+  { id: 'stickers',   label: 'Stickers',   icon: '🏷️' },
+  { id: 'accesorios', label: 'Accesorios', icon: '🎒' },
+];
+
+// ════════════════════════════════════════════
+// PRODUCTOS
+// ════════════════════════════════════════════
+const PRODUCTS = [
+  {
+    id: 1, cat: 'prendas', icon: '👕',
+    name: 'Musculosa A',
+    desc: 'Musculosa unisex con estampado exclusivo en serigrafía. Calidad premium.',
+    price: 25000, currency: '$',
+    sizes: ['S','M','L','XL','XXL'],
+    badge: null, img: null,
+  },
+  {
+    id: 2, cat: 'prendas', icon: '👕',
+    name: 'Musculosa B',
+    desc: 'Diseño alternativo en la misma tela premium. La más pedida.',
+    price: 25000, currency: '$',
+    sizes: ['S','M','L','XL','XXL'],
+    badge: 'Más vendido', img: null,
+  },
+  {
+    id: 3, cat: 'gorras', icon: '🧢',
+    name: 'Gorra C',
+    desc: 'Gorra de popelín con bordado en frente. Cierre ajustable.',
+    price: 17000, currency: '$',
+    sizes: ['Ajustable'],
+    badge: null, img: null,
+  },
+  {
+    id: 4, cat: 'gorras', icon: '🧢',
+    name: 'Gorra N',
+    desc: 'Modelo negro. Logo bordado en frente. Cierre ajustable.',
+    price: 17000, currency: '$',
+    sizes: ['Ajustable'],
+    badge: 'Nuevo', img: null,
+  },
+  {
+    id: 5, cat: 'stickers', icon: '🏷️',
+    name: 'Sticker Chico',
+    desc: 'Vinilo cortado. Resistente al agua y al sol. Ideal para autos y notebooks.',
+    price: 500, currency: '$',
+    sizes: [],
+    badge: null, img: null,
+  },
+  {
+    id: 6, cat: 'stickers', icon: '🏷️',
+    name: 'Sticker Grande',
+    desc: 'Versión tamaño grande. Mismo material resistente.',
+    price: 500, currency: '$',
+    sizes: [],
+    badge: 'Más vendido', img: null,
+  },
+];
+
+// ════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════
+let activeCat = 'all';
+let currentProduct = null;
+let selectedSize = null;
+let quantity = 1;
+let cart = [];
+
+// ════════════════════════════════════════════
+// SETUP LOGOS
+// ════════════════════════════════════════════
+(function setupLogos() {
+  const src = 'data:image/jpeg;base64,' + LOGO_B64;
+  document.getElementById('headerLogo').src = src;
+  document.getElementById('heroLogo').src = src;
+})();
+
+// ════════════════════════════════════════════
+// NAV TABS
+// ════════════════════════════════════════════
+(function renderNav() {
+  const tabs = [{ id: 'all', label: 'Todo', icon: '' }, ...CATS];
+  document.getElementById('nav').innerHTML = tabs.map(c =>
+    `<button class="nav-tab${c.id === 'all' ? ' active' : ''}" onclick="setTab('${c.id}', this)">${c.icon ? c.icon + ' ' : ''}${c.label}</button>`
+  ).join('');
+})();
+
+function setTab(id, el) {
+  activeCat = id;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderCatalog();
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════
+// RENDER CATÁLOGO
+// ════════════════════════════════════════════
+function renderCatalog() {
+  const wrap = document.getElementById('catalogContent');
+  let html = '';
+
+  const cats = activeCat === 'all' ? CATS : CATS.filter(c => c.id === activeCat);
+
+  cats.forEach(cat => {
+    const products = PRODUCTS.filter(p => p.cat === cat.id);
+    if (!products.length) return;
+
+    const cards = products.map(p => {
+      const badgeCls = p.badge ? BADGE_CLS[p.badge] || 'badge-verde' : '';
+      const badgeHtml = p.badge ? `<span class="card-badge ${badgeCls}">${p.badge}</span>` : '';
+      const imgContent = p.img
+        ? `<img src="${p.img}" alt="${p.name}">`
+        : p.icon;
+
+      const sizeItems = (p.sizes || []).map(s => {
+        const isSize = SIZES_SET.has(s);
+        return `<span class="talle${isSize ? ' talle-size' : ''}">${s}</span>`;
+      }).join('');
+      const sizesHtml = sizeItems ? `<div class="talles">${sizeItems}</div>` : '';
+
+      return `
+        <div class="card anim" onclick="openProduct(${p.id})">
+          <div class="card-img">${imgContent}${badgeHtml}</div>
+          <div class="card-body">
+            <div class="card-name">${p.name}</div>
+            <div class="card-desc">${p.desc}</div>
+            <div class="card-price">${fmt(p.price)}</div>
+            ${sizesHtml}
+          </div>
+        </div>`;
+    }).join('');
+
+    html += `
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">${cat.icon} ${cat.label} <span class="section-count">${products.length}</span></div>
+        </div>
+        <div class="grid">${cards}</div>
+      </div>`;
+  });
+
+  if (!html) {
+    html = `<div class="empty anim"><div class="ei">📦</div>No hay productos en esta categoría todavía.</div>`;
+  }
+
+  wrap.innerHTML = html;
+}
+
+renderCatalog();
+
+// ════════════════════════════════════════════
+// DETALLE DE PRODUCTO
+// ════════════════════════════════════════════
+function openProduct(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  currentProduct = p;
+  selectedSize = null;
+  quantity = 1;
+
+  // Imagen
+  const imgEl = document.getElementById('detailImg');
+  const badgeCls = p.badge ? BADGE_CLS[p.badge] || 'badge-verde' : '';
+  const badgeHtml = p.badge ? `<span class="detail-badge ${badgeCls}">${p.badge}</span>` : '';
+  imgEl.innerHTML = (p.img ? `<img src="${p.img}" alt="${p.name}">` : p.icon) + badgeHtml;
+
+  document.getElementById('detailName').textContent = p.name;
+  document.getElementById('detailDesc').textContent = p.desc;
+  document.getElementById('detailPrice').textContent = fmt(p.price);
+  document.getElementById('qtyVal').textContent = '1';
+  document.getElementById('sizeNote').classList.remove('visible');
+
+  // Sizes
+  const sizeGrid = document.getElementById('sizeGrid');
+  const sizeLabel = document.getElementById('sizeLabel');
+  const hasSizes = p.sizes && p.sizes.length > 0;
+
+  if (hasSizes) {
+    sizeLabel.style.display = 'block';
+    sizeGrid.style.display = 'flex';
+    sizeGrid.innerHTML = p.sizes.map(s =>
+      `<button class="size-btn" onclick="selectSize('${s}', this)">${s}</button>`
+    ).join('');
+  } else {
+    sizeLabel.style.display = 'none';
+    sizeGrid.style.display = 'none';
+    sizeGrid.innerHTML = '';
+    selectedSize = 'Único';
+  }
+
+  showPage('pageDetail');
+  window.scrollTo(0, 0);
+}
+
+function selectSize(size, el) {
+  selectedSize = size;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('sizeNote').classList.remove('visible');
+}
+
+function changeQty(delta) {
+  quantity = Math.max(1, quantity + delta);
+  document.getElementById('qtyVal').textContent = quantity;
+}
+
+// ════════════════════════════════════════════
+// PÁGINAS
+// ════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToCatalog() {
+  showPage('pageCatalog');
+  window.scrollTo(0, 0);
+}
+
+// ════════════════════════════════════════════
+// CARRITO
+// ════════════════════════════════════════════
+function addToCart() {
+  if (!currentProduct) return;
+  const needsSize = currentProduct.sizes && currentProduct.sizes.length > 0;
+
+  if (needsSize && !selectedSize) {
+    document.getElementById('sizeNote').classList.add('visible');
+    return;
+  }
+
+  const key = `${currentProduct.id}_${selectedSize}`;
+  const existing = cart.find(i => i.key === key);
+
+  if (existing) {
+    existing.qty += quantity;
+  } else {
+    cart.push({
+      key,
+      product: currentProduct,
+      size: selectedSize,
+      qty: quantity,
+    });
+  }
+
+  updateCartCount();
+  showToast(`✓ ${currentProduct.name}${selectedSize && selectedSize !== 'Único' ? ' ('+selectedSize+')' : ''} agregado al carrito`);
+  goToCatalog();
+}
+
+function updateCartCount() {
+  const total = cart.reduce((s, i) => s + i.qty, 0);
+  const el = document.getElementById('cartCount');
+  el.textContent = total;
+  el.classList.toggle('visible', total > 0);
+}
+
+function openCart() {
+  renderCartDrawer();
+  document.getElementById('cartOverlay').classList.add('open');
+}
+
+function closeCart() {
+  document.getElementById('cartOverlay').classList.remove('open');
+}
+
+function closeCartOnOverlay(e) {
+  if (e.target === document.getElementById('cartOverlay')) closeCart();
+}
+
+function removeFromCart(key) {
+  cart = cart.filter(i => i.key !== key);
+  updateCartCount();
+  renderCartDrawer();
+}
+
+function renderCartDrawer() {
+  const itemsEl = document.getElementById('cartItems');
+  const footerEl = document.getElementById('cartFooter');
+
+  if (!cart.length) {
+    itemsEl.innerHTML = `<div class="cart-empty"><div class="ei">🛒</div>Tu carrito está vacío</div>`;
+    footerEl.style.display = 'none';
+    return;
+  }
+
+  let totalAmt = 0;
+  itemsEl.innerHTML = cart.map(item => {
+    const subtotal = item.product.price * item.qty;
+    totalAmt += subtotal;
+    const sizeStr = item.size && item.size !== 'Único' ? ` · Talle ${item.size}` : '';
+    return `
+      <div class="cart-item">
+        <div class="cart-item-icon">${item.product.icon}</div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${item.product.name}</div>
+          <div class="cart-item-sub">x${item.qty}${sizeStr}</div>
+        </div>
+        <div class="cart-item-price">${fmt(subtotal)}</div>
+        <button class="cart-item-remove" onclick="removeFromCart('${item.key}')">✕</button>
+      </div>`;
+  }).join('');
+
+  document.getElementById('cartTotal').textContent = fmt(totalAmt);
+  footerEl.style.display = 'block';
+}
+
+function checkout() {
+  const lines = cart.map(i => {
+    const sizeStr = i.size && i.size !== 'Único' ? ` (${i.size})` : '';
+    return `• ${i.product.name}${sizeStr} x${i.qty} — ${fmt(i.product.price * i.qty)}`;
+  }).join('\n');
+  const total = cart.reduce((s,i) => s + i.product.price * i.qty, 0);
+  const msg = `🛒 *Pedido Tienda Pino*\n\n${lines}\n\n*Total: ${fmt(total)}*`;
+  const encoded = encodeURIComponent(msg);
+  window.open(`https://wa.me/?text=${encoded}`, '_blank');
+}
+
+// ════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
