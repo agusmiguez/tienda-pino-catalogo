@@ -862,7 +862,7 @@ function openProduct(id){
     sL.style.display="block";sG.style.display="flex";
     sG.innerHTML=p.sizes.map(s=>{
       const d=getDisp(p.excelKey||p.name,s);const ag=d!==null&&d<=0;
-      return `<button class="size-btn${ag?" ":""}" onclick="${ag?"":"selectSize('"+s+"',this)"}" ${ag?"disabled":""}>${s}${d!==null?`<br><span style="font-size:10px;font-weight:400;opacity:.7">${ag?"0":d}</span>`:""}</button>`;
+      return `<button class="size-btn${ag?" ":""}" onclick="${ag?"":"selectSize('"+s+"',this)"}" ${ag?"disabled":""}>${s}</button>`;
     }).join("");
   } else {sL.style.display="none";sG.style.display="none";sG.innerHTML="";selectedSize="Único";}
   const addBtn=document.getElementById("addBtn");
