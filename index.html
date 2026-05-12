@@ -562,10 +562,45 @@ const SIZES_SET = new Set(["XS","S","M","L","XL","XXL","U","Único"]);
 // ═══════════════════════════════════════════════
 
 // ── localStorage solo para ediciones del admin ──
+// ── adminEdits: ahora se guardan en Vercel Blob via /api/admin-data ──
+// localStorage solo se usa como cache rápido para no esperar el fetch
 const ADMIN_EDITS_KEY = "tiendapino_admin_edits";
-function loadAdminEdits() { try { return JSON.parse(localStorage.getItem(ADMIN_EDITS_KEY)) || {}; } catch(e) { return {}; } }
-function saveAdminEdits() { localStorage.setItem(ADMIN_EDITS_KEY, JSON.stringify(adminEdits)); }
-let adminEdits = loadAdminEdits();
+function loadAdminEditsCache() { try { return JSON.parse(localStorage.getItem(ADMIN_EDITS_KEY)) || {}; } catch(e) { return {}; } }
+function saveAdminEditsCache() { localStorage.setItem(ADMIN_EDITS_KEY, JSON.stringify(adminEdits)); }
+let adminEdits = loadAdminEditsCache();
+
+async function fetchAdminEdits() {
+  try {
+    const r = await fetch("/api/admin-data", { cache: "no-store" });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j.ok && j.data) {
+      adminEdits = j.data;
+      saveAdminEditsCache();
+      return j.data;
+    }
+  } catch(e) { console.warn("No se pudieron cargar las ediciones del admin:", e); }
+  return null;
+}
+
+async function saveAdminEdits() {
+  saveAdminEditsCache(); // cache local inmediato
+  try {
+    const r = await fetch("/api/admin-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Pass": adminSessionPass },
+      body: JSON.stringify(adminEdits),
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "Error al guardar");
+    return true;
+  } catch(e) {
+    showToast("⚠️ Cambios guardados local pero no en servidor: " + e.message, "err");
+    return false;
+  }
+}
+
+let adminSessionPass = ""; // se setea al loguear
 
 let PRODUCTS = [];
 let STOCK    = [];
@@ -579,7 +614,7 @@ function guessCat(name) {
   return "prendas";
 }
 
-function saveData() {
+async function saveData() {
   PRODUCTS.forEach(p => {
     if (!p.excelKey) return; // solo guardar ediciones de productos vinculados al Excel
     adminEdits[p.excelKey] = {
@@ -592,7 +627,7 @@ function saveData() {
       img: p.img
     };
   });
-  saveAdminEdits();
+  return await saveAdminEdits();
 }
 function saveStock() { /* stock viene del Excel */ }
 
@@ -601,6 +636,9 @@ async function loadFromOneDrive() {
   document.getElementById("catalogContent").innerHTML =
     `<div class="loading"><div class="sp"></div><div>Cargando catálogo…</div></div>`;
   try {
+    // Cargar ediciones del admin desde el servidor (con cache local como fallback)
+    await fetchAdminEdits();
+
     const res = await fetch("/api/catalogo");
     if (!res.ok) throw new Error("Error " + res.status);
     const data = await res.json();
@@ -843,6 +881,7 @@ function doAdminLogin() {
   const pw = document.getElementById("adminPwInput").value;
   if(pw === ADMIN_PASS) {
     adminLoggedIn = true;
+    adminSessionPass = pw; // necesario para enviar al servidor
     closeAdminLogin();
     document.getElementById("adminMenuLabel").textContent = "Panel Admin";
     openAdminPanel();
@@ -854,6 +893,7 @@ function doAdminLogin() {
 }
 function doAdminLogout() {
   adminLoggedIn = false;
+  adminSessionPass = "";
   document.getElementById("adminPanel").classList.remove("open");
   document.getElementById("adminMenuLabel").textContent = "Iniciar sesión";
   showToast("Sesión cerrada","ok");
@@ -1087,7 +1127,7 @@ function addTag(v){v=v.trim();if(v&&!currentTags.includes(v)){currentTags.push(v
 function addSizeSet(arr){arr.forEach(s=>addTag(s));}
 function removeTag(v){currentTags=currentTags.filter(t=>t!==v);renderTags();}
 
-function saveProd(){
+async function saveProd(){
   const id=document.getElementById("pEditId").value;
   const name=document.getElementById("pName").value.trim();
   const price=parseFloat(document.getElementById("pPrice").value);
@@ -1114,7 +1154,7 @@ function saveProd(){
     PRODUCTS.push(prod);
     showToast("Producto creado ✓","ok");
   }
-  saveData();
+  await saveData();
   closeProdModal();
   renderAdminProds();
   renderAdminDashboard();
@@ -1132,10 +1172,10 @@ function confirmDeleteProd(id,name){
   document.getElementById("apConfirmOk").onclick=doDeleteProd;
 }
 function closeConfirm(){document.getElementById("apConfirm").classList.remove("open");deleteId=null;}
-function doDeleteProd(){
+async function doDeleteProd(){
   if(!deleteId)return;
   PRODUCTS=PRODUCTS.filter(p=>p.id!==deleteId);
-  saveData();
+  await saveData();
   closeConfirm();
   renderAdminProds();
   renderAdminDashboard();
@@ -1231,10 +1271,10 @@ function renderImportPreview(){
     </tbody></table></div>`;
 }
 function clearImport(){importData=[];document.getElementById("importPreview").style.display="none";document.getElementById("importActions").style.display="none";}
-function confirmImport(){
+async function confirmImport(){
   if(!importData.length)return;
   importData.forEach(p=>{p.id=nextId();PRODUCTS.push(p);});
-  saveData();clearImport();
+  await saveData();clearImport();
   renderAdminProds();renderAdminDashboard();renderCatalog();
   showToast(`${importData.length} productos importados ✓`,"ok");
   importData=[];
