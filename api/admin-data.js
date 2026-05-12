@@ -1,8 +1,8 @@
 // api/admin-data.js — Vercel Function
-// GET: lee las ediciones del admin desde Vercel Blob (privado, leído server-side)
+// GET: lee las ediciones del admin desde Vercel Blob
 // POST: guarda las ediciones del admin en Vercel Blob (requiere ADMIN_PASS)
 
-import { put, list, head } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 const BLOB_FILENAME = 'tiendapino-admin-data.json';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'pino2026';
@@ -16,7 +16,6 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Listar blobs (en un store privado, podemos buscar el archivo)
       const { blobs } = await list({ prefix: BLOB_FILENAME });
       const blob = blobs.find(b => b.pathname === BLOB_FILENAME);
       if (!blob) {
@@ -24,7 +23,6 @@ export default async function handler(req, res) {
         res.status(200).json({ ok: true, data: {} });
         return;
       }
-      // Fetch del contenido (en private store, la URL del blob igual es accesible con el token)
       const r = await fetch(blob.downloadUrl || blob.url);
       if (!r.ok) {
         res.setHeader('Cache-Control', 'no-store');
@@ -38,7 +36,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // Validar contraseña admin
       const pass = req.headers['x-admin-pass'];
       if (pass !== ADMIN_PASS) {
         res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
@@ -49,9 +46,8 @@ export default async function handler(req, res) {
         res.status(400).json({ ok: false, error: 'Body inválido' });
         return;
       }
-      // Guardar con access:public no funciona en store privado.
-      // Para store privado, no se pasa access (toma el default del store)
       await put(BLOB_FILENAME, JSON.stringify(body), {
+        access: 'public',
         contentType: 'application/json',
         allowOverwrite: true,
         addRandomSuffix: false,
