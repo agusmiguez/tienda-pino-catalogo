@@ -291,7 +291,7 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
     <div class="hero-eyebrow">Colección 2026</div>
     <h1 class="hero-title">TIENDA PINO</h1>
     <p class="hero-sub">Ropa, gorras y accesorios</p>
-    <div id="msStatusBar" style="display:none;margin-top:10px;font-size:11px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);padding:4px 12px;border-radius:20px;font-weight:600"></div>
+
   </div>
   <div class="wrapper"><div id="catalogContent"></div></div>
 </div>
@@ -525,192 +525,10 @@ const CATS = [{id:"prendas",label:"Prendas",icon:"👕"},{id:"gorras",label:"Gor
 const SIZES_SET = new Set(["XS","S","M","L","XL","XXL","U","Único"]);
 
 // ═══════════════════════════════════════════════
-// MICROSOFT GRAPH — OAuth2 PKCE (mismo sistema que necc-ventas)
+// DATOS — lee desde Vercel Function /api/catalogo
 // ═══════════════════════════════════════════════
-const CLIENT_ID = "7c0a9ce5-ed5f-4192-8a38-774d08ffad25";
-const TENANT    = "consumers";
-const SCOPES    = ["Files.Read","User.Read"];
-const FILENAME  = "tiendapino_excel.xlsx";
 
-async function sha256(p){const e=new TextEncoder().encode(p);const h=await crypto.subtle.digest("SHA-256",e);return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
-function rand(){return crypto.getRandomValues(new Uint8Array(32)).reduce((s,b)=>s+b.toString(16).padStart(2,"0"),"");}
-async function msalLogin(){const v=rand();const c=await sha256(v);sessionStorage.setItem("pkce_verifier",v);const p=new URLSearchParams({client_id:CLIENT_ID,response_type:"code",redirect_uri:window.location.origin+window.location.pathname,scope:SCOPES.join(" ")+" offline_access",code_challenge:c,code_challenge_method:"S256",response_mode:"query"});window.location.href=`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize?${p}`;}
-async function exchangeCode(code){const v=sessionStorage.getItem("pkce_verifier");const b=new URLSearchParams({client_id:CLIENT_ID,grant_type:"authorization_code",code,redirect_uri:window.location.origin+window.location.pathname,code_verifier:v,scope:SCOPES.join(" ")+" offline_access"});const r=await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,{method:"POST",body:b});return (await r.json()).access_token;}
-async function graphGet(t,p){const r=await fetch(`https://graph.microsoft.com/v1.0${p}`,{headers:{Authorization:`Bearer ${t}`}});return r.json();}
-
-// Estado de conexión Graph
-let msToken  = null;
-let msFileId = null;
-let msUser   = null;
-
-// ── Encontrar el Excel en OneDrive ──
-async function findExcelFile(token) {
-  const own = await graphGet(token, "/me/drive/root/children");
-  const f = own.value?.find(i => i.name === FILENAME);
-  if (f) return f.id;
-  const shared = await graphGet(token, "/me/drive/sharedWithMe");
-  const sf = shared.value?.find(i => i.name === FILENAME);
-  if (sf) return sf.remoteItem?.id ? `drives/${sf.remoteItem.parentReference?.driveId}/items/${sf.remoteItem.id}` : sf.id;
-  return null;
-}
-
-// ── Leer hojas CAPITAL y STOCK via Graph API ──
-async function readFromGraph(token, fId) {
-  const base = fId.includes("/drives/")
-    ? `https://graph.microsoft.com/v1.0/${fId}/workbook/worksheets`
-    : `https://graph.microsoft.com/v1.0/me/drive/items/${fId}/workbook/worksheets`;
-  const hdrs = {Authorization: `Bearer ${token}`};
-
-  PRODUCTS = [];
-  STOCK = [];
-
-  // ── Hoja CAPITAL: productos ──
-  try {
-    const cRes  = await fetch(`${base}/CAPITAL/usedRange`, {headers: hdrs});
-    const cData = await cRes.json();
-    if (cData.values) {
-      const rows = cData.values;
-      // Buscar fila de encabezado con "concepto" o leer directo
-      // Formato: fecha | socio | concepto | costoUnitario | monto
-      let hIdx = -1, col = 0;
-      for (let i = 0; i < rows.length; i++) {
-        const ci = rows[i].findIndex(c => String(c).toLowerCase() === "fecha");
-        if (ci >= 0) { hIdx = i; col = ci; break; }
-      }
-      const dataRows = hIdx >= 0 ? rows.slice(hIdx + 1) : rows;
-      const seen = new Set();
-      dataRows.forEach(r => {
-        const nombre = String(r[col+2] || "").trim();
-        const costo  = Number(r[col+3]) || 0;
-        const precio = Number(r[col+4]) || 0;  // columna precio de venta (si existe), sino 0
-        if (!nombre || seen.has(nombre.toLowerCase())) return;
-        seen.add(nombre.toLowerCase());
-        const edit = adminEdits[nombre] || {};
-        const cat  = edit.cat || guessCat(nombre);
-        PRODUCTS.push({
-          id: PRODUCTS.length + 1,
-          name: nombre, cat, icon: CAT_ICONS[cat] || "📦",
-          description: edit.description || "",
-          price: edit.price || precio,
-          cost: costo,
-          sizes: edit.sizes || [],
-          badge: edit.badge || null,
-          img:   edit.img   || null,
-        });
-      });
-    }
-  } catch(e) { console.warn("Error leyendo CAPITAL:", e); }
-
-  // ── Hoja STOCK ──
-  try {
-    const sRes  = await fetch(`${base}/STOCK/usedRange`, {headers: hdrs});
-    const sData = await sRes.json();
-    if (sData.values) {
-      const rows = sData.values;
-      let hIdx = -1, col = 0;
-      for (let i = 0; i < rows.length; i++) {
-        const ci = rows[i].findIndex(c => String(c).toLowerCase() === "producto");
-        if (ci >= 0) { hIdx = i; col = ci; break; }
-      }
-      const dataRows = hIdx >= 0 ? rows.slice(hIdx + 1) : rows;
-      dataRows.forEach(r => {
-        const producto = String(r[col]   || "").trim();
-        const talle    = String(r[col+1] || "").trim();
-        const si       = Number(r[col+2]) || 0;
-        const vendidos = Number(r[col+3]) || 0;
-        if (!producto || !talle) return;
-        STOCK.push({ producto, talle, stock_inicio: si, vendidos });
-        // Auto-poblar talles si el admin no los editó
-        const prod = PRODUCTS.find(p => p.name.toLowerCase() === producto.toLowerCase());
-        if (prod && !adminEdits[prod.name]?.sizes) {
-          if (talle !== "Único" && !prod.sizes.includes(talle)) prod.sizes.push(talle);
-        }
-      });
-    }
-  } catch(e) { console.warn("Error leyendo STOCK:", e); }
-
-  // Leer precio de venta desde hoja STOCK si CAPITAL no lo tenía
-  PRODUCTS.forEach(p => {
-    if (!p.price) {
-      // Buscar precio en ventas o dejar 0
-      p.price = adminEdits[p.name]?.price || 0;
-    }
-  });
-}
-
-// ── UI de conexión ──
-function showCatalogLoading(msg) {
-  document.getElementById("catalogContent").innerHTML =
-    `<div class="loading"><div class="sp"></div><div>${msg || "Cargando catálogo…"}</div></div>`;
-}
-function showCatalogConnect() {
-  document.getElementById("catalogContent").innerHTML = `
-    <div style="text-align:center;padding:60px 20px">
-      <div style="font-size:40px;margin-bottom:14px">📊</div>
-      <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">Conectá tu Excel</div>
-      <div style="font-size:13px;color:#6b7280;margin-bottom:22px">El catálogo se carga desde tu Excel de OneDrive</div>
-      <button onclick="msalLogin()" style="background:#16a34a;color:#fff;border:none;border-radius:12px;padding:13px 28px;font-family:Inter,sans-serif;font-size:14px;font-weight:700;cursor:pointer">
-        Conectar con Microsoft
-      </button>
-    </div>`;
-}
-function showCatalogError(msg) {
-  document.getElementById("catalogContent").innerHTML =
-    `<div class="empty"><div class="ei">⚠️</div><div style="font-size:13px;color:#6b7280">${msg}<br><button onclick="msalLogin()" style="margin-top:12px;background:#16a34a;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-family:Inter,sans-serif;font-size:13px;font-weight:700;cursor:pointer">Reconectar</button></div></div>`;
-}
-
-// ── Cargar datos desde Graph ──
-async function loadFromOneDrive() {
-  if (!msToken) { showCatalogConnect(); return; }
-  showCatalogLoading("Cargando catálogo desde Excel…");
-  try {
-    if (!msFileId) {
-      msFileId = await findExcelFile(msToken);
-      if (!msFileId) throw new Error("No se encontró el archivo " + FILENAME);
-    }
-    await readFromGraph(msToken, msFileId);
-    renderCatalog();
-    updateMsStatus();
-    if (adminLoggedIn) { renderAdminProds(); renderAdminDashboard(); renderStockTable(""); }
-  } catch(e) {
-    console.error("Error Graph:", e);
-    showCatalogError("No se pudo cargar el catálogo: " + e.message);
-  }
-}
-
-function updateMsStatus() {
-  const el = document.getElementById("msStatusBar");
-  if (el) {
-    el.textContent = msUser ? `✓ Excel conectado · ${msUser}` : "";
-    el.style.display = msUser ? "block" : "none";
-  }
-}
-
-// ── Handler del OAuth2 callback (code en URL) ──
-async function handleOAuthCallback() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
-  if (!code) return false;
-  window.history.replaceState({}, "", window.location.pathname);
-  showCatalogLoading("Conectando con Microsoft…");
-  try {
-    msToken = await exchangeCode(code);
-    const user = await graphGet(msToken, "/me");
-    msUser = user.displayName || user.userPrincipalName;
-    sessionStorage.setItem("ms_token", msToken);
-    sessionStorage.setItem("ms_user", msUser);
-    await loadFromOneDrive();
-    showToast(`✓ Conectado como ${msUser}`, "ok");
-    return true;
-  } catch(e) {
-    showCatalogError("Error al autenticar: " + e.message);
-    return false;
-  }
-}
-
-// ═══════════════════════════════════════════════
-// DATA — localStorage solo para ediciones del admin
-// ═══════════════════════════════════════════════
+// ── localStorage solo para ediciones del admin ──
 const ADMIN_EDITS_KEY = "tiendapino_admin_edits";
 function loadAdminEdits() { try { return JSON.parse(localStorage.getItem(ADMIN_EDITS_KEY)) || {}; } catch(e) { return {}; } }
 function saveAdminEdits() { localStorage.setItem(ADMIN_EDITS_KEY, JSON.stringify(adminEdits)); }
@@ -736,6 +554,47 @@ function saveData() {
 }
 function saveStock() { /* stock viene del Excel */ }
 
+// ── Cargar desde /api/catalogo (Vercel Function) ──
+async function loadFromOneDrive() {
+  document.getElementById("catalogContent").innerHTML =
+    `<div class="loading"><div class="sp"></div><div>Cargando catálogo…</div></div>`;
+  try {
+    const res = await fetch("/api/catalogo");
+    if (!res.ok) throw new Error("Error " + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Error desconocido");
+
+    PRODUCTS = [];
+    STOCK = data.stock || [];
+
+    (data.products || []).forEach((p, i) => {
+      const edit = adminEdits[p.name] || {};
+      const cat  = edit.cat || guessCat(p.name);
+      // Auto-poblar talles desde stock si el admin no los editó
+      const sizes = edit.sizes || STOCK
+        .filter(s => s.producto.toLowerCase() === p.name.toLowerCase() && s.talle !== "Único")
+        .map(s => s.talle);
+      PRODUCTS.push({
+        id: i + 1,
+        name: p.name, cat, icon: CAT_ICONS[cat] || "📦",
+        description: edit.description || "",
+        price: edit.price || p.price || 0,
+        cost: p.cost || 0,
+        sizes,
+        badge: edit.badge || null,
+        img:   edit.img   || null,
+      });
+    });
+
+    renderCatalog();
+    if (adminLoggedIn) { renderAdminProds(); renderAdminDashboard(); renderStockTable(""); }
+  } catch(e) {
+    console.error("Error cargando catálogo:", e);
+    document.getElementById("catalogContent").innerHTML =
+      `<div class="empty"><div class="ei">⚠️</div><div style="font-size:13px;color:#6b7280">No se pudo cargar el catálogo.<br><small>${e.message}</small><br><button onclick="loadFromOneDrive()" style="margin-top:12px;background:#16a34a;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-family:Inter,sans-serif;font-size:13px;font-weight:700;cursor:pointer">Reintentar</button></div></div>`;
+  }
+}
+
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
@@ -756,22 +615,7 @@ function productImg(p) {
 // ═══════════════════════════════════════════════
 let activeCat="all", currentProduct=null, selectedSize=null, quantity=1, cart=[];
 
-function init() {
-  // Recuperar token de sesión anterior si existe
-  const savedToken = sessionStorage.getItem("ms_token");
-  const savedUser  = sessionStorage.getItem("ms_user");
-  if (savedToken) { msToken = savedToken; msUser = savedUser; }
-
-  // Manejar callback OAuth (code en URL)
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("code")) {
-    handleOAuthCallback();
-  } else if (msToken) {
-    loadFromOneDrive();
-  } else {
-    showCatalogConnect();
-  }
-}
+function init() { loadFromOneDrive(); }
 
 function setTab(id,el){
   activeCat=id;
