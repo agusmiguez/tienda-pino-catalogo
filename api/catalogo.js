@@ -1,6 +1,6 @@
 // api/catalogo.js — Vercel Function
 // Lee las hojas CAPITAL y STOCK del Excel de OneDrive via Microsoft Graph
-// Usa refresh_token guardado en env vars para renovar el access token automáticamente
+// Usa refresh_token guardado en env vars
 
 const CLIENT_ID = process.env.MS_CLIENT_ID;
 const REFRESH_TOKEN = process.env.MS_REFRESH_TOKEN;
@@ -15,6 +15,10 @@ async function getAccessToken() {
   });
   const res = await fetch("https://login.microsoftonline.com/consumers/oauth2/v2.0/token", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Origin": "https://tienda-pino-catalogo.vercel.app",
+    },
     body,
   });
   const data = await res.json();
@@ -45,9 +49,8 @@ async function readSheet(base, sheetName, hdrs) {
 }
 
 export default async function handler(req, res) {
-  // CORS para que el HTML pueda llamar la API
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120"); // cache 1 min
+  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
 
   try {
     const token = await getAccessToken();
@@ -60,7 +63,7 @@ export default async function handler(req, res) {
       ? `https://graph.microsoft.com/v1.0/${fileId}/workbook/worksheets`
       : `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets`;
 
-    // ── Leer CAPITAL (productos) ──
+    // ── CAPITAL (productos) ──
     const capitalRows = await readSheet(base, "CAPITAL", hdrs);
     const products = [];
     if (capitalRows) {
@@ -81,7 +84,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Leer STOCK ──
+    // ── STOCK ──
     const stockRows = await readSheet(base, "STOCK", hdrs);
     const stock = [];
     if (stockRows) {
