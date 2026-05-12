@@ -472,8 +472,17 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
       <div style="font-size:11px;color:#9ca3af;margin-top:5px">JPG, PNG, WebP — hasta 10MB (se optimizan automáticamente)</div>
       <input type="hidden" id="pImg">
     </div>
+    <div class="fm-row">
+      <label class="fm-label">Producto vinculado al Excel * <span style="font-weight:400;color:#9ca3af">(controla el stock)</span></label>
+      <select class="fm-select" id="pExcelKey" onchange="onExcelKeyChange()">
+        <option value="">— Seleccionar del Excel —</option>
+      </select>
+    </div>
     <div class="fm-row2">
-      <div><label class="fm-label">Nombre *</label><input class="fm-input" id="pName" placeholder="Ej: Musculosa A"></div>
+      <div>
+        <label class="fm-label">Nombre que ven los clientes *</label>
+        <input class="fm-input" id="pName" placeholder="Ej: Musculosa Verde Premium">
+      </div>
       <div><label class="fm-label">Categoría *</label>
         <select class="fm-select" id="pCat">
           <option value="prendas">👕 Prendas</option>
@@ -572,7 +581,16 @@ function guessCat(name) {
 
 function saveData() {
   PRODUCTS.forEach(p => {
-    adminEdits[p.name] = {cat:p.cat, description:p.description, price:p.price, sizes:p.sizes, badge:p.badge, img:p.img};
+    if (!p.excelKey) return; // solo guardar ediciones de productos vinculados al Excel
+    adminEdits[p.excelKey] = {
+      name: p.name,          // nombre custom
+      cat: p.cat,
+      description: p.description,
+      price: p.price,
+      sizes: p.sizes,
+      badge: p.badge,
+      img: p.img
+    };
   });
   saveAdminEdits();
 }
@@ -592,15 +610,18 @@ async function loadFromOneDrive() {
     STOCK = data.stock || [];
 
     (data.products || []).forEach((p, i) => {
-      const edit = adminEdits[p.name] || {};
+      const excelKey = p.name; // nombre original del Excel — vínculo invariable
+      const edit = adminEdits[excelKey] || {};
       const cat  = edit.cat || guessCat(p.name);
       // Auto-poblar talles desde stock si el admin no los editó
       const sizes = edit.sizes || STOCK
-        .filter(s => s.producto.toLowerCase() === p.name.toLowerCase() && s.talle !== "Único")
+        .filter(s => s.producto.toLowerCase() === excelKey.toLowerCase() && s.talle !== "Único")
         .map(s => s.talle);
       PRODUCTS.push({
         id: i + 1,
-        name: p.name, cat, icon: CAT_ICONS[cat] || "📦",
+        excelKey,                          // nombre original Excel (invariable)
+        name: edit.name || p.name,         // nombre mostrado al cliente (editable)
+        cat, icon: CAT_ICONS[cat] || "📦",
         description: edit.description || "",
         price: edit.price || p.price || 0,
         cost: p.cost || 0,
@@ -622,12 +643,15 @@ async function loadFromOneDrive() {
 // ═══════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════
-function getDisp(name, talle) {
-  const s = STOCK.find(x => x.producto.toLowerCase()===name.toLowerCase() && x.talle===talle);
+function getDisp(nameOrKey, talle) {
+  // Si recibimos un producto, usar su excelKey
+  const key = nameOrKey;
+  const s = STOCK.find(x => x.producto.toLowerCase()===key.toLowerCase() && x.talle===talle);
   return s ? s.stock_inicio - s.vendidos : null;
 }
-function getTotalDisp(name) {
-  return STOCK.filter(x=>x.producto.toLowerCase()===name.toLowerCase()).reduce((a,s)=>a+(s.stock_inicio-s.vendidos),0);
+function getTotalDisp(nameOrKey) {
+  const key = nameOrKey;
+  return STOCK.filter(x=>x.producto.toLowerCase()===key.toLowerCase()).reduce((a,s)=>a+(s.stock_inicio-s.vendidos),0);
 }
 function productImg(p) {
   // p.img puede ser un string (URL) o un array de URLs
@@ -672,8 +696,8 @@ function renderCatalog(){
     const cards=prods.map(p=>{
       const bc=p.badge?(BADGE_CLS[p.badge]||"badge-verde"):"";
       const bh=p.badge?`<span class="card-badge ${bc}">${p.badge}</span>`:"";
-      const td=getTotalDisp(p.name);
-      const hasStock=STOCK.filter(x=>x.producto.toLowerCase()===p.name.toLowerCase()).length>0;
+      const td=getTotalDisp(p.excelKey||p.name);
+      const hasStock=STOCK.filter(x=>x.producto.toLowerCase()===(p.excelKey||p.name).toLowerCase()).length>0;
       const sh=hasStock&&td===0?`<span class="stock-badge">Agotado</span>`:"";
       const si=(p.sizes||[]).map(s=>`<span class="talle${SIZES_SET.has(s)?" ts":""}">${s}</span>`).join("");
       return `<div class="card anim" onclick="openProduct(${p.id})">
@@ -716,8 +740,8 @@ function openProduct(id){
   document.getElementById("detailPrice").textContent=fmt(p.price);
   document.getElementById("qtyVal").textContent="1";
   document.getElementById("sizeNote").classList.remove("visible");
-  const td=getTotalDisp(p.name);
-  const stockRows=STOCK.filter(x=>x.producto.toLowerCase()===p.name.toLowerCase());
+  const td=getTotalDisp(p.excelKey||p.name);
+  const stockRows=STOCK.filter(x=>x.producto.toLowerCase()===(p.excelKey||p.name).toLowerCase());
   const sEl=document.getElementById("detailStock");
   if(stockRows.length){sEl.textContent=td===0?"⛔ Agotado":td<=3?`⚠️ Últimas ${td} unidades`:`✅ ${td} unidades disponibles`;sEl.className="detail-stock"+(td===0?" out":td<=3?" low":"");}
   else sEl.textContent="";
@@ -726,7 +750,7 @@ function openProduct(id){
   if(hasSizes){
     sL.style.display="block";sG.style.display="flex";
     sG.innerHTML=p.sizes.map(s=>{
-      const d=getDisp(p.name,s);const ag=d!==null&&d<=0;
+      const d=getDisp(p.excelKey||p.name,s);const ag=d!==null&&d<=0;
       return `<button class="size-btn${ag?" ":""}" onclick="${ag?"":"selectSize('"+s+"',this)"}" ${ag?"disabled":""}>${s}${d!==null?`<br><span style="font-size:10px;font-weight:400;opacity:.7">${ag?"0":d}</span>`:""}</button>`;
     }).join("");
   } else {sL.style.display="none";sG.style.display="none";sG.innerHTML="";selectedSize="Único";}
@@ -745,7 +769,7 @@ function addToCart(){
   const ns=currentProduct.sizes&&currentProduct.sizes.length>0;
   if(ns&&!selectedSize){document.getElementById("sizeNote").classList.add("visible");return;}
   const sz=selectedSize||"Único";
-  const d=getDisp(currentProduct.name,sz);
+  const d=getDisp(currentProduct.excelKey||currentProduct.name,sz);
   if(d!==null&&d<=0){showToast("Sin stock disponible","err");return;}
   const key=currentProduct.id+"_"+sz;
   const ex=cart.find(i=>i.key===key);
@@ -890,11 +914,11 @@ function renderAdminProds() {
   const rows=PRODUCTS.map(p=>{
     const bc=p.badge?(BADGE_CLS[p.badge]||"badge-verde"):"";
     const thumb=p.img?`<img src="${p.img}" alt="">`:p.icon||"📦";
-    const td=getTotalDisp(p.name);
+    const td=getTotalDisp(p.excelKey||p.name);
     const sb=td<=0?`<span class="badge-sm badge-rojo">Agotado</span>`:td<=3?`<span class="badge-sm badge-naranja">${td} u.</span>`:`<span class="badge-sm badge-verde">${td} u.</span>`;
     const pJson=JSON.stringify(p).replace(/'/g,"\\'");
     return `<tr>
-      <td><div class="apt-name-cell"><div class="apt-thumb">${thumb}</div><div><div class="apt-name">${p.name}</div><div class="apt-cat">${p.cat}</div></div></div></td>
+      <td><div class="apt-name-cell"><div class="apt-thumb">${thumb}</div><div><div class="apt-name">${p.name}</div><div class="apt-cat">${p.cat}${p.excelKey && p.excelKey.toLowerCase()!==p.name.toLowerCase()?` · 🔗 ${p.excelKey}`:""}</div></div></div></td>
       <td>${fmt(p.price)}</td>
       <td>${p.cost?fmt(p.cost):"—"}</td>
       <td>${p.badge?`<span class="badge-sm ${bc}">${p.badge}</span>`:"—"}</td>
@@ -947,9 +971,36 @@ function openProdModal(id) {
   document.getElementById("pBadge").value = p?.badge||"";
   document.getElementById("pImg").value = JSON.stringify(currentImgs);
   document.getElementById("prodModalTitle").textContent = p?"Editar producto":"Nuevo producto";
+
+  // Poblar dropdown con todos los productos únicos del Excel (STOCK)
+  const excelProducts = [...new Set(STOCK.map(s => s.producto))].sort();
+  const sel = document.getElementById("pExcelKey");
+  sel.innerHTML = '<option value="">— Seleccionar del Excel —</option>' +
+    excelProducts.map(name => `<option value="${name}">${name}</option>`).join("");
+  sel.value = p?.excelKey || "";
+
   renderImgGallery();
   renderTags();
   document.getElementById("prodModal").classList.add("open");
+}
+
+// Cuando elegís un producto del Excel, autocompletar nombre y datos si está vacío
+function onExcelKeyChange() {
+  const key = document.getElementById("pExcelKey").value;
+  if (!key) return;
+  const nameInput = document.getElementById("pName");
+  // Si el nombre está vacío, poner el del Excel como sugerencia
+  if (!nameInput.value.trim()) nameInput.value = key;
+  // Auto-poblar talles desde stock si no hay
+  if (!currentTags.length) {
+    const sizes = STOCK.filter(s => s.producto.toLowerCase() === key.toLowerCase() && s.talle !== "Único").map(s => s.talle);
+    [...new Set(sizes)].forEach(s => currentTags.push(s));
+    renderTags();
+  }
+  // Auto-poblar categoría
+  if (document.getElementById("pCat").value === "prendas") {
+    document.getElementById("pCat").value = guessCat(key);
+  }
 }
 function closeProdModal(){document.getElementById("prodModal").classList.remove("open");}
 
@@ -1043,7 +1094,10 @@ function saveProd(){
   if(!name){showToast("El nombre es requerido","err");return;}
   if(isNaN(price)||price<=0){showToast("El precio es requerido","err");return;}
   const cat=document.getElementById("pCat").value;
+  const excelKey = document.getElementById("pExcelKey").value;
+  if (!excelKey) { showToast("Tenés que seleccionar un producto del Excel","err"); return; }
   const prod={
+    excelKey,
     name,cat,icon:CAT_ICONS[cat]||"📦",
     description:document.getElementById("pDesc").value.trim(),
     price,cost:parseFloat(document.getElementById("pCost").value)||0,
