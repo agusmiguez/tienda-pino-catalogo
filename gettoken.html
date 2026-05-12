@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Obtener Token — Tienda Pino</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:540px;margin:60px auto;padding:20px;color:#111}
+h2{margin-bottom:6px}p{color:#6b7280;margin-bottom:24px}
+.btn{background:#16a34a;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer}
+.token-box{background:#f3f4f6;border-radius:10px;padding:16px;word-break:break-all;font-family:monospace;font-size:12px;margin:16px 0;border:1px solid #e5e7eb}
+.copy-btn{background:#111827;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px}
+.step{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:14px}
+.step h3{font-size:14px;margin-bottom:8px;color:#374151}
+.warn{background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px;font-size:13px;color:#713f12;margin-top:16px}
+</style>
+</head>
+<body>
+<h2>🔑 Obtener Refresh Token</h2>
+<p>Usá esta página una sola vez para obtener el token de Microsoft y guardarlo en Vercel.</p>
+
+<div class="step" id="step1">
+  <h3>Paso 1 — Iniciar sesión con Microsoft</h3>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:14px">Hacé click para autenticarte con tu cuenta de OneDrive donde tenés el Excel.</p>
+  <button class="btn" onclick="doLogin()">Iniciar sesión con Microsoft</button>
+</div>
+
+<div class="step" id="step2" style="display:none">
+  <h3>✅ Paso 2 — Copiá este Refresh Token</h3>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px">Guardá este valor como variable de entorno <strong>MS_REFRESH_TOKEN</strong> en Vercel:</p>
+  <div class="token-box" id="tokenBox">Cargando…</div>
+  <button class="copy-btn" onclick="copyToken()">📋 Copiar token</button>
+
+  <div style="margin-top:20px;font-size:13px;color:#374151">
+    <strong>Paso 3 — Variables de entorno en Vercel:</strong>
+    <ol style="margin-top:8px;padding-left:18px;line-height:1.8">
+      <li>Abrí <a href="https://vercel.com" target="_blank">vercel.com</a> → tu proyecto → <strong>Settings → Environment Variables</strong></li>
+      <li>Agregá: <code>MS_CLIENT_ID</code> = <strong>7c0a9ce5-ed5f-4192-8a38-774d08ffad25</strong></li>
+      <li>Agregá: <code>MS_REFRESH_TOKEN</code> = el token que copiaste arriba</li>
+      <li>Hacé <strong>Redeploy</strong></li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    ⚠️ <strong>Borrá este archivo</strong> (<code>gettoken.html</code> y <code>api/gettoken.js</code>) del repo una vez que guardaste el token en Vercel.
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = "7c0a9ce5-ed5f-4192-8a38-774d08ffad25";
+const TENANT = "consumers";
+
+async function sha256(p){const e=new TextEncoder().encode(p);const h=await crypto.subtle.digest("SHA-256",e);return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
+function rand(){return crypto.getRandomValues(new Uint8Array(32)).reduce((s,b)=>s+b.toString(16).padStart(2,"0"),"");}
+
+async function doLogin(){
+  const v=rand();const c=await sha256(v);
+  sessionStorage.setItem("pkce_verifier",v);
+  const p=new URLSearchParams({
+    client_id:CLIENT_ID,response_type:"code",
+    redirect_uri:window.location.origin+"/gettoken.html",
+    scope:"Files.Read User.Read offline_access",
+    code_challenge:c,code_challenge_method:"S256",response_mode:"query"
+  });
+  window.location.href=`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize?${p}`;
+}
+
+async function handleCallback(){
+  const params=new URLSearchParams(window.location.search);
+  const code=params.get("code");
+  if(!code)return;
+  window.history.replaceState({},"","/gettoken.html");
+  const v=sessionStorage.getItem("pkce_verifier");
+  const b=new URLSearchParams({
+    client_id:CLIENT_ID,grant_type:"authorization_code",code,
+    redirect_uri:window.location.origin+"/gettoken.html",
+    code_verifier:v,scope:"Files.Read User.Read offline_access"
+  });
+  const r=await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,{method:"POST",body:b});
+  const data=await r.json();
+  if(data.refresh_token){
+    document.getElementById("step1").style.display="none";
+    document.getElementById("step2").style.display="block";
+    document.getElementById("tokenBox").textContent=data.refresh_token;
+  } else {
+    alert("Error: "+JSON.stringify(data));
+  }
+}
+
+function copyToken(){
+  navigator.clipboard.writeText(document.getElementById("tokenBox").textContent);
+  document.querySelector(".copy-btn").textContent="✓ Copiado!";
+}
+
+handleCallback();
+</script>
+</body>
+</html>
