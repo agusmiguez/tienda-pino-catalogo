@@ -1,10 +1,17 @@
 // api/catalogo.js — Vercel Function
-// Lee las hojas CAPITAL y STOCK del Excel de OneDrive via Microsoft Graph
-// Usa refresh_token guardado en env vars
 
 const CLIENT_ID = process.env.MS_CLIENT_ID;
 const REFRESH_TOKEN = process.env.MS_REFRESH_TOKEN;
 const FILENAME = "tiendapino_excel.xlsx";
+
+// Precios de venta hardcodeados (mientras no estén en el Excel)
+const PRECIOS_VENTA = {
+  "musculosa a": 25000,
+  "musculosa b": 25000,
+  "gorras c": 17000,
+  "gorras n": 17000,
+  "stickers": 500,
+};
 
 async function getAccessToken() {
   const body = new URLSearchParams({
@@ -63,30 +70,12 @@ export default async function handler(req, res) {
       ? `https://graph.microsoft.com/v1.0/${fileId}/workbook/worksheets`
       : `https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets`;
 
-    // ── CAPITAL (productos) ──
-    const capitalRows = await readSheet(base, "CAPITAL", hdrs);
-    const products = [];
-    if (capitalRows) {
-      let hIdx = -1, col = 0;
-      for (let i = 0; i < capitalRows.length; i++) {
-        const ci = capitalRows[i].findIndex(c => String(c).toLowerCase() === "fecha");
-        if (ci >= 0) { hIdx = i; col = ci; break; }
-      }
-      const dataRows = hIdx >= 0 ? capitalRows.slice(hIdx + 1) : capitalRows;
-      const seen = new Set();
-      dataRows.forEach(r => {
-        const nombre = String(r[col + 2] || "").trim();
-        const costo  = Number(r[col + 3]) || 0;
-        const precio = Number(r[col + 4]) || 0;
-        if (!nombre || seen.has(nombre.toLowerCase())) return;
-        seen.add(nombre.toLowerCase());
-        products.push({ name: nombre, cost: costo, price: precio });
-      });
-    }
-
     // ── STOCK ──
     const stockRows = await readSheet(base, "STOCK", hdrs);
     const stock = [];
+    const stockNamesOrdered = []; // [{name, lower}]
+    const seenNames = new Set();
+
     if (stockRows) {
       let hIdx = -1, col = 0;
       for (let i = 0; i < stockRows.length; i++) {
@@ -101,8 +90,51 @@ export default async function handler(req, res) {
         const vendidos = Number(r[col + 3]) || 0;
         if (!producto || !talle) return;
         stock.push({ producto, talle, stock_inicio: si, vendidos });
+        const lower = producto.toLowerCase();
+        if (!seenNames.has(lower)) {
+          seenNames.add(lower);
+          stockNamesOrdered.push({ name: producto, lower });
+        }
       });
     }
+
+    // ── CAPITAL: solo para extraer costo unitario ──
+    const capitalRows = await readSheet(base, "CAPITAL", hdrs);
+    const costMap = {}; // {nombre_lower: cost}
+    if (capitalRows) {
+      let hIdx = -1, col = 0;
+      for (let i = 0; i < capitalRows.length; i++) {
+        const ci = capitalRows[i].findIndex(c => String(c).toLowerCase() === "fecha");
+        if (ci >= 0) { hIdx = i; col = ci; break; }
+      }
+      const dataRows = hIdx >= 0 ? capitalRows.slice(hIdx + 1) : capitalRows;
+      dataRows.forEach(r => {
+        const nombre = String(r[col + 2] || "").trim();
+        const costo  = Number(r[col + 3]) || 0;
+        if (!nombre) return;
+        const key = nombre.toLowerCase();
+        if (costo && !costMap[key]) costMap[key] = costo;
+      });
+    }
+
+    // ── Combinar productos ──
+    const products = stockNamesOrdered.map(({ name, lower }) => {
+      // Buscar costo: exacto o substring
+      let cost = costMap[lower] || 0;
+      if (!cost) {
+        for (const k of Object.keys(costMap)) {
+          if (k.includes(lower) || lower.includes(k)) { cost = costMap[k]; break; }
+        }
+      }
+      // Precio: hardcoded por ahora
+      let price = PRECIOS_VENTA[lower] || 0;
+      if (!price) {
+        for (const k of Object.keys(PRECIOS_VENTA)) {
+          if (k.includes(lower) || lower.includes(k)) { price = PRECIOS_VENTA[k]; break; }
+        }
+      }
+      return { name, cost, price };
+    });
 
     res.status(200).json({ products, stock, ok: true });
 
