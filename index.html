@@ -469,7 +469,7 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
         <span style="font-size:18px">＋</span>
         <span>Agregar imagen</span>
       </label>
-      <div style="font-size:11px;color:#9ca3af;margin-top:5px">JPG, PNG — máx 2MB cada una</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:5px">JPG, PNG, WebP — hasta 10MB (se optimizan automáticamente)</div>
       <input type="hidden" id="pImg">
     </div>
     <div class="fm-row2">
@@ -977,23 +977,53 @@ function removeImg(i) {
   renderImgGallery();
 }
 
-function handleImgsAdd(input) {
-  const files = Array.from(input.files || []);
-  if (!files.length) return;
-  let pending = files.length;
-  files.forEach(file => {
-    if (file.size > 2*1024*1024) {
-      showToast(`"${file.name}" pesa más de 2MB`, "err");
-      if (--pending === 0) { input.value = ""; renderImgGallery(); }
-      return;
-    }
+// Comprimir imagen: redimensiona a máx 1600px de ancho y comprime a calidad 0.85
+function compressImage(file, maxWidth = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
-      currentImgs.push(e.target.result);
-      if (--pending === 0) { input.value = ""; renderImgGallery(); }
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        // Salida JPEG para máximo ahorro (no PNG)
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("No se pudo procesar la imagen"));
+      img.src = e.target.result;
     };
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
     reader.readAsDataURL(file);
   });
+}
+
+async function handleImgsAdd(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const MAX = 10 * 1024 * 1024; // 10MB
+  showToast(`Procesando ${files.length} imagen${files.length>1?'es':''}…`, "ok");
+  for (const file of files) {
+    if (file.size > MAX) {
+      showToast(`"${file.name}" pesa más de 10MB`, "err");
+      continue;
+    }
+    try {
+      const compressed = await compressImage(file);
+      currentImgs.push(compressed);
+      renderImgGallery();
+    } catch(e) {
+      showToast(`Error con "${file.name}": ${e.message}`, "err");
+    }
+  }
+  input.value = "";
+  showToast("✓ Imágenes agregadas", "ok");
 }
 
 function renderTags(){
