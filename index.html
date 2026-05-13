@@ -186,6 +186,11 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
 .apt-name{font-weight:700;color:#111827}
 .apt-cat{font-size:11px;color:#9ca3af}
 .apt-actions{display:flex;gap:5px}
+.vis-toggle{background:#fff;border:1.5px solid #e5e7eb;border-radius:7px;padding:5px 8px;cursor:pointer;color:#374151;display:flex;align-items:center;transition:all .12s}
+.vis-toggle:hover{border-color:#16a34a;color:#16a34a}
+.vis-toggle.hidden{background:#fee2e2;border-color:#fecaca;color:#dc2626}
+.vis-toggle.hidden:hover{background:#fecaca}
+.row-hidden td:not(:last-child){opacity:.55}
 .badge-sm{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
 
 /* MODAL */
@@ -691,13 +696,14 @@ async function saveData() {
   PRODUCTS.forEach(p => {
     if (!p.excelKey) return; // solo guardar ediciones de productos vinculados al Excel
     adminEdits[p.excelKey] = {
-      name: p.name,          // nombre custom
+      name: p.name,
       cat: p.cat,
       description: p.description,
       price: p.price,
       sizes: p.sizes,
       badge: p.badge,
-      img: p.img
+      img: p.img,
+      hidden: p.hidden === true
     };
   });
   return await saveAdminEdits();
@@ -730,8 +736,8 @@ async function loadFromOneDrive() {
         .map(s => s.talle);
       PRODUCTS.push({
         id: i + 1,
-        excelKey,                          // nombre original Excel (invariable)
-        name: edit.name || p.name,         // nombre mostrado al cliente (editable)
+        excelKey,
+        name: edit.name || p.name,
         cat, icon: CAT_ICONS[cat] || "📦",
         description: edit.description || "",
         price: edit.price || p.price || 0,
@@ -739,6 +745,7 @@ async function loadFromOneDrive() {
         sizes,
         badge: edit.badge || null,
         img:   edit.img   || null,
+        hidden: edit.hidden === true,
       });
     });
 
@@ -802,7 +809,7 @@ function renderCatalog(){
   const cats=activeCat==="all"?CATS:CATS.filter(c=>c.id===activeCat);
   let html="";
   cats.forEach(cat=>{
-    const prods=PRODUCTS.filter(p=>p.cat===cat.id);
+    const prods=PRODUCTS.filter(p=>p.cat===cat.id && !p.hidden);
     if(!prods.length)return;
     const cards=prods.map(p=>{
       const bc=p.badge?(BADGE_CLS[p.badge]||"badge-verde"):"";
@@ -1069,17 +1076,24 @@ function renderAdminProds() {
   }
   const rows=PRODUCTS.map(p=>{
     const bc=p.badge?(BADGE_CLS[p.badge]||"badge-verde"):"";
-    const thumb=p.img?`<img src="${p.img}" alt="">`:p.icon||"📦";
+    const thumb=p.img?`<img src="${Array.isArray(p.img)?p.img[0]:p.img}" alt="">`:p.icon||"📦";
     const td=getTotalDisp(p.excelKey||p.name);
     const sb=td<=0?`<span class="badge-sm badge-rojo">Agotado</span>`:td<=3?`<span class="badge-sm badge-naranja">${td} u.</span>`:`<span class="badge-sm badge-verde">${td} u.</span>`;
-    const pJson=JSON.stringify(p).replace(/'/g,"\\'");
-    return `<tr>
-      <td><div class="apt-name-cell"><div class="apt-thumb">${thumb}</div><div><div class="apt-name">${p.name}</div><div class="apt-cat">${p.cat}${p.excelKey && p.excelKey.toLowerCase()!==p.name.toLowerCase()?` · 🔗 ${p.excelKey}`:""}</div></div></div></td>
+    const hidden = p.hidden === true;
+    const visToggle = `<button class="vis-toggle${hidden?' hidden':''}" onclick="toggleProductVis(${p.id})" title="${hidden?'Mostrar en catálogo':'Ocultar del catálogo'}">
+      ${hidden
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+      }
+    </button>`;
+    return `<tr${hidden?' class="row-hidden"':''}>
+      <td><div class="apt-name-cell"><div class="apt-thumb">${thumb}</div><div><div class="apt-name">${p.name}${hidden?' <span class="badge-sm badge-rojo" style="margin-left:6px">Oculto</span>':''}</div><div class="apt-cat">${p.cat}${p.excelKey && p.excelKey.toLowerCase()!==p.name.toLowerCase()?` · 🔗 ${p.excelKey}`:""}</div></div></div></td>
       <td>${fmt(p.price)}</td>
       <td>${p.cost?fmt(p.cost):"—"}</td>
       <td>${p.badge?`<span class="badge-sm ${bc}">${p.badge}</span>`:"—"}</td>
       <td>${sb}</td>
       <td><div class="apt-actions">
+        ${visToggle}
         <button class="ap-btn-secondary" onclick='openProdModal(${p.id})'>Editar</button>
         <button class="ap-btn-danger" onclick="confirmDeleteProd(${p.id},'${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
       </div></td>
@@ -1089,6 +1103,16 @@ function renderAdminProds() {
     <thead><tr><th>Producto</th><th>Precio</th><th>Costo</th><th>Badge</th><th>Stock</th><th>Acciones</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+async function toggleProductVis(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  p.hidden = !p.hidden;
+  await saveData();
+  renderAdminProds();
+  renderCatalog();
+  showToast(p.hidden ? "Producto oculto del catálogo" : "Producto visible en el catálogo", "ok");
 }
 
 // ═══════════════════════════════════════════════
