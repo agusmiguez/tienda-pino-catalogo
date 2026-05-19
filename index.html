@@ -730,6 +730,7 @@ async function loadFromOneDrive() {
 
     (data.products || []).forEach((p, i) => {
       const excelKey = p.name; // nombre original del Excel — vínculo invariable
+      const hasEdits = adminEdits.hasOwnProperty(excelKey);
       const edit = adminEdits[excelKey] || {};
       const cat  = edit.cat || guessCat(p.name);
       // Auto-poblar talles desde stock si el admin no los editó
@@ -747,7 +748,8 @@ async function loadFromOneDrive() {
         sizes,
         badge: edit.badge || null,
         img:   edit.img   || null,
-        hidden: edit.hidden === true,
+        // Productos nuevos (sin editar) aparecen ocultos por defecto
+        hidden: hasEdits ? (edit.hidden === true) : true,
       });
     });
 
