@@ -319,7 +319,7 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" onclick="setTab('prendas',this)"><span style="width:22px;text-align:center">👕</span>Prendas</button>
           <button class="dropdown-item" onclick="setTab('gorras',this)"><span style="width:22px;text-align:center">🧢</span>Gorras</button>
-          <button class="dropdown-item" onclick="setTab('stickers',this)"><span style="width:22px;text-align:center">🏷️</span>Stickers</button>
+          <button class="dropdown-item" onclick="setTab('mates',this)"><span style="width:22px;text-align:center">🧉</span>Mates y bombillas</button>
           <button class="dropdown-item" onclick="setTab('accesorios',this)"><span style="width:22px;text-align:center">🎒</span>Accesorios</button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" onclick="openAdminLogin()" id="adminMenuBtn"><span style="width:22px;text-align:center">🔐</span><span id="adminMenuLabel">Iniciar sesión</span></button>
@@ -565,7 +565,7 @@ body{font-family:"Inter",sans-serif;background:#f9fafb;color:#111827;font-size:1
         <select class="fm-select" id="pCat">
           <option value="prendas">👕 Prendas</option>
           <option value="gorras">🧢 Gorras</option>
-          <option value="stickers">🏷️ Stickers</option>
+          <option value="mates">🧉 Mates y bombillas</option>
           <option value="accesorios">🎒 Accesorios</option>
         </select>
       </div>
@@ -631,8 +631,8 @@ const STORAGE_KEY = "tiendapino_products";
 const STOCK_KEY   = "tiendapino_stock";
 const fmt = n => "$" + new Intl.NumberFormat("es-AR").format(n);
 const BADGE_CLS = {"Nuevo":"badge-verde","Más vendido":"badge-azul","Limitado":"badge-naranja","Agotado":"badge-rojo"};
-const CAT_ICONS = {prendas:"👕",gorras:"🧢",stickers:"🏷️",accesorios:"🎒"};
-const CATS = [{id:"prendas",label:"Prendas",icon:"👕"},{id:"gorras",label:"Gorras",icon:"🧢"},{id:"stickers",label:"Stickers",icon:"🏷️"},{id:"accesorios",label:"Accesorios",icon:"🎒"}];
+const CAT_ICONS = {prendas:"👕",gorras:"🧢",mates:"🧉",accesorios:"🎒"};
+const CATS = [{id:"prendas",label:"Prendas",icon:"👕"},{id:"gorras",label:"Gorras",icon:"🧢"},{id:"mates",label:"Mates y bombillas",icon:"🧉"},{id:"accesorios",label:"Accesorios",icon:"🎒"}];
 const SIZES_SET = new Set(["XS","S","M","L","XL","XXL","U","Único"]);
 
 // ═══════════════════════════════════════════════
@@ -687,7 +687,7 @@ function nextId() { return PRODUCTS.length ? Math.max(...PRODUCTS.map(p=>p.id)) 
 function guessCat(name) {
   const n = name.toLowerCase();
   if (n.includes("gorra")) return "gorras";
-  if (n.includes("sticker") || n.includes("calco")) return "stickers";
+  if (n.includes("mate") || n.includes("bombilla") || n.includes("yerbera") || n.includes("termo")) return "mates";
   if (n.includes("musc") || n.includes("remera") || n.includes("camis") || n.includes("buzo")) return "prendas";
   return "prendas";
 }
@@ -1392,7 +1392,7 @@ function parseImportRows(rows){
     const price=parseFloat(String(get(MAP.price)).replace(/[^0-9.]/g,""))||0;
     const cost=parseFloat(String(get(MAP.cost)).replace(/[^0-9.]/g,""))||0;
     const catRaw=get(MAP.cat).toLowerCase();
-    const cat=["prendas","gorras","stickers","accesorios"].find(c=>catRaw.includes(c))||"prendas";
+    const cat=["prendas","gorras","mates","accesorios"].find(c=>catRaw.includes(c))||"prendas";
     const sizesRaw=get(MAP.sizes);
     const sizes=sizesRaw?sizesRaw.split(/[,;\/]/).map(s=>s.trim()).filter(Boolean):[];
     importData.push({name,price,cost,cat,icon:CAT_ICONS[cat]||"📦",description:get(MAP.description),sizes,badge:null,img:null});
