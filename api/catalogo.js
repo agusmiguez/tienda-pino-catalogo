@@ -1,10 +1,15 @@
 // api/catalogo.js — Vercel Function
+// Lee productos y stock del Excel via Microsoft Graph
+// Usa el refresh_token guardado en Blob (rotativo) o el de env como fallback
+
+import { put, list } from '@vercel/blob';
 
 const CLIENT_ID = process.env.MS_CLIENT_ID;
-const REFRESH_TOKEN = process.env.MS_REFRESH_TOKEN;
+const INITIAL_REFRESH_TOKEN = process.env.MS_REFRESH_TOKEN;
 const FILENAME = "tiendapino_excel.xlsx";
+const TOKEN_BLOB = 'tiendapino-ms-token.json';
 
-// Precios de venta hardcodeados (mientras no estén en el Excel)
+// Precios de venta hardcodeados
 const PRECIOS_VENTA = {
   "musculosa a": 25000,
   "musculosa b": 25000,
@@ -13,23 +18,53 @@ const PRECIOS_VENTA = {
   "stickers": 500,
 };
 
+async function getCurrentRefreshToken() {
+  try {
+    const { blobs } = await list({ prefix: TOKEN_BLOB });
+    const blob = blobs.find(b => b.pathname === TOKEN_BLOB);
+    if (blob) {
+      const r = await fetch(blob.downloadUrl || blob.url);
+      if (r.ok) {
+        const data = await r.json();
+        if (data.refresh_token) return data.refresh_token;
+      }
+    }
+  } catch (e) { console.warn("No hay token en Blob:", e.message); }
+  return INITIAL_REFRESH_TOKEN;
+}
+
+async function saveRefreshToken(token) {
+  await put(TOKEN_BLOB, JSON.stringify({ refresh_token: token, updated: new Date().toISOString() }), {
+    access: 'public',
+    contentType: 'application/json',
+    allowOverwrite: true,
+    addRandomSuffix: false,
+  });
+}
+
 async function getAccessToken() {
+  const refreshToken = await getCurrentRefreshToken();
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
     grant_type: "refresh_token",
-    refresh_token: REFRESH_TOKEN,
+    refresh_token: refreshToken,
     scope: "Files.Read User.Read offline_access",
   });
   const res = await fetch("https://login.microsoftonline.com/consumers/oauth2/v2.0/token", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Origin": "https://tienda-pino-catalogo.vercel.app",
+      "Origin": "https://catalogotiendapino.vercel.app",
     },
     body,
   });
   const data = await res.json();
   if (!data.access_token) throw new Error("No se pudo obtener access token: " + JSON.stringify(data));
+  // Guardar el nuevo refresh_token rotado (Microsoft lo cambia cada vez)
+  if (data.refresh_token) {
+    try { await saveRefreshToken(data.refresh_token); }
+    catch(e) { console.warn("No se pudo guardar token:", e.message); }
+  }
   return data.access_token;
 }
 
@@ -73,7 +108,7 @@ export default async function handler(req, res) {
     // ── STOCK ──
     const stockRows = await readSheet(base, "STOCK", hdrs);
     const stock = [];
-    const stockNamesOrdered = []; // [{name, lower}]
+    const stockNamesOrdered = [];
     const seenNames = new Set();
 
     if (stockRows) {
@@ -98,9 +133,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── CAPITAL: solo para extraer costo unitario ──
+    // ── CAPITAL ──
     const capitalRows = await readSheet(base, "CAPITAL", hdrs);
-    const costMap = {}; // {nombre_lower: cost}
+    const costMap = {};
     if (capitalRows) {
       let hIdx = -1, col = 0;
       for (let i = 0; i < capitalRows.length; i++) {
@@ -119,14 +154,12 @@ export default async function handler(req, res) {
 
     // ── Combinar productos ──
     const products = stockNamesOrdered.map(({ name, lower }) => {
-      // Buscar costo: exacto o substring
       let cost = costMap[lower] || 0;
       if (!cost) {
         for (const k of Object.keys(costMap)) {
           if (k.includes(lower) || lower.includes(k)) { cost = costMap[k]; break; }
         }
       }
-      // Precio: hardcoded por ahora
       let price = PRECIOS_VENTA[lower] || 0;
       if (!price) {
         for (const k of Object.keys(PRECIOS_VENTA)) {
