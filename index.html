@@ -27,8 +27,8 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 .menu-lines{display:flex;flex-direction:column;gap:4px}
 .menu-lines span{display:block;width:16px;height:2px;background:currentColor;border-radius:2px}
 .dropdown{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:210px;z-index:999;overflow:hidden}
-@keyframes dropIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.dropdown.open{display:block;animation:dropIn .18s ease both}
+@keyframes dropIn{from{opacity:0;transform:translateY(-5px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.dropdown.open{display:block;animation:dropIn 0.22s var(--ease-out-expo) both}
 .drop-item{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:14px;font-weight:500;color:#374151;cursor:pointer;border:none;background:none;width:100%;font-family:"Bricolage Grotesque",sans-serif;text-align:left;transition:background .1s}
 .drop-item:hover{background:#f9fafb}
 .drop-item.active{background:#f0fdf4;color:#16a34a;font-weight:700}
@@ -67,7 +67,7 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 
 /* ── CARD FLIP 3D ── */
 .scene{width:200px;height:320px;flex-shrink:0;cursor:pointer}
-.inner{position:relative;width:100%;height:320px;transition:transform .52s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d}
+.inner{position:relative;width:100%;height:320px;transition:transform 0.5s var(--ease-out-quart);transform-style:preserve-3d}
 .scene:hover .inner,.scene.flipped .inner{transform:rotateY(180deg)}
 .front,.back{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
 
@@ -118,8 +118,8 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 .cart-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-end;justify-content:center}
 .cart-overlay.open{display:flex}
 .cart-drawer{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.15)}
-@keyframes upCart{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.cart-drawer{animation:upCart .25s ease both}
+@keyframes drawerUp{from{opacity:0;transform:translateY(52px)}to{opacity:1;transform:translateY(0)}}
+.cart-drawer{animation:drawerUp 0.38s var(--ease-out-expo) both}
 .cart-handle{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:14px auto 4px}
 .cart-header{padding:10px 20px 14px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between}
 .cart-title{font-size:16px;font-weight:800;color:#111827}
@@ -176,8 +176,8 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 .toast{display:none;position:fixed;top:70px;right:16px;left:16px;z-index:9999;max-width:400px;margin:0 auto;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.1);text-align:center}
 .toast.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
 .toast.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
-@keyframes sl{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
-.toast.show{display:block;animation:sl .2s ease both}
+@keyframes sl{from{opacity:0;transform:translateY(-12px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.toast.show{display:block;animation:sl 0.3s var(--ease-out-expo) both}
 
 /* ── ADMIN LOGIN ── */
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;align-items:center;justify-content:center}
@@ -310,6 +310,75 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
   .ap-tabs{gap:2px}.ap-tab{font-size:11px;padding:6px 3px}
   .brand{font-size:13px}
 }
+
+/* ── MOTION TOKENS ─────────────────────────────────── */
+:root{
+  --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+  --ease-out-quart: cubic-bezier(0.25,1,0.5,1);
+}
+
+/* ── HEADER ENTRANCE ── */
+@keyframes headerIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.header{animation:headerIn 0.45s var(--ease-out-expo) both}
+
+/* ── HERO ENTRANCE ── */
+@keyframes heroLogoIn{from{opacity:0;transform:scale(0.86) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes heroTextIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes heroSubIn{from{opacity:0}to{opacity:1}}
+.hero-logo{animation:heroLogoIn 0.65s var(--ease-out-expo) 0.05s both}
+.hero-title{animation:heroTextIn 0.52s var(--ease-out-expo) 0.16s both}
+.hero-sub{animation:heroSubIn 0.45s ease 0.3s both}
+
+/* ── CARD ENTRANCE (IntersectionObserver) ── */
+@keyframes cardReveal{
+  from{opacity:0;transform:translateY(20px) scale(0.96)}
+  to  {opacity:1;transform:translateY(0)    scale(1)}
+}
+.scene[data-reveal]{opacity:0}
+.scene[data-reveal].revealed{
+  animation:cardReveal 0.48s var(--ease-out-expo) both;
+  animation-delay:calc(var(--si,0) * 55ms);
+}
+
+/* ── SECTION HEAD ENTRANCE ── */
+@keyframes sectionIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.section-head[data-reveal]{opacity:0}
+.section-head[data-reveal].revealed{animation:sectionIn 0.38s var(--ease-out-quart) both}
+
+/* ── BUTTON ACTIVE PRESS FEEDBACK ── */
+.add-btn:active:not(:disabled),
+.cart-checkout-btn:active,
+.cta-btn:active{transform:scale(0.95);transition:transform 0.07s ease}
+.cart-btn:active{transform:scale(0.93);transition:transform 0.07s ease}
+.menu-btn:active{transform:scale(0.96);transition:transform 0.07s ease}
+
+/* ── ADD-TO-CART SUCCESS PULSE ── */
+@keyframes addPulse{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
+.add-btn.added{animation:addPulse 0.38s var(--ease-out-quart)}
+
+/* ── CART COUNT BOUNCE ── */
+@keyframes countBounce{
+  0%  {transform:scale(1)}
+  30% {transform:scale(1.45)}
+  60% {transform:scale(0.85)}
+  80% {transform:scale(1.12)}
+  100%{transform:scale(1)}
+}
+.cart-count.bounce{animation:countBounce 0.44s var(--ease-out-quart) both}
+
+/* ── SIZE BUTTON PRESS ── */
+.sz-btn:not(.out):active{transform:scale(0.88);transition:transform 0.07s ease}
+
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:0.01ms!important;
+    animation-delay:0ms!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -773,17 +842,25 @@ function renderCatalog() {
     const head = document.createElement("div");
     head.className = "section-head";
     head.innerHTML = `<div class="section-title">${cat.icon} ${cat.label} <span class="section-count">${prods.length}</span></div>`;
+    head.dataset.reveal = '';
     sec.appendChild(head);
 
     const grid = document.createElement("div");
     grid.className = "grid";
-    prods.forEach(p => grid.appendChild(buildCard(p)));
+    prods.forEach((p, ci) => {
+      const _c = buildCard(p);
+      _c.dataset.reveal = '';
+      _c.style.setProperty('--si', Math.min(ci, 9));
+      grid.appendChild(_c);
+    });
     sec.appendChild(grid);
     wrap.appendChild(sec);
   });
 
   if (!hasAny) {
     wrap.innerHTML = `<div class="empty"><div class="ei">📦</div>No hay productos en esta categoría.</div>`;
+  } else {
+    requestAnimationFrame(function(){ setupRevealObserver(wrap); });
   }
 }
 
@@ -881,8 +958,15 @@ function addToCart(btn, pid) {
 function updateCartCount() {
   const t = cart.reduce((s, i) => s + i.qty, 0);
   const el = document.getElementById("cartCount");
+  const prev = parseInt(el.textContent) || 0;
   el.textContent = t;
   el.classList.toggle("vis", t > 0);
+  if (t > prev && t > 0) {
+    el.classList.remove("bounce");
+    void el.offsetWidth;
+    el.classList.add("bounce");
+    el.addEventListener('animationend', function(){ el.classList.remove('bounce'); }, { once: true });
+  }
 }
 function openCart()  { renderCartDrawer(); document.getElementById("cartOverlay").classList.add("open"); }
 function closeCart() { document.getElementById("cartOverlay").classList.remove("open"); }
@@ -1289,6 +1373,24 @@ function addSizeSet(arr) { arr.forEach(s => addTag(s)); }
 
 // ── ARRANCAR ─────────────────────────────
 loadFromAPI();
+
+// ── CARD REVEAL via IntersectionObserver ──────────────
+function setupRevealObserver(root) {
+  if (typeof IntersectionObserver === 'undefined') {
+    root.querySelectorAll('[data-reveal]').forEach(function(el){ el.classList.add('revealed'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.04, rootMargin: '0px 0px -20px 0px' });
+  root.querySelectorAll('[data-reveal]').forEach(function(el){ io.observe(el); });
+}
+
 </script>
 </body>
 </html>
