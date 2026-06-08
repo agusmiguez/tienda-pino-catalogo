@@ -619,8 +619,32 @@ let currentImgs = [];
 
 // ── ADMIN EDITS (localStorage + /api/admin-data) ──
 const EDITS_KEY = "tiendapino_admin_edits_v2";
-function loadEditsCache()  { try { return JSON.parse(localStorage.getItem(EDITS_KEY)) || {}; } catch(e) { return {}; } }
-function saveEditsCache()  { localStorage.setItem(EDITS_KEY, JSON.stringify(adminEdits)); }
+function loadEditsCache() {
+  try { return JSON.parse(localStorage.getItem(EDITS_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveEditsCache() {
+  try {
+    // Guardar sin imágenes en localStorage para evitar el límite de 5MB
+    // Las imágenes viven solo en el Blob (admin-data API)
+    const slim = {};
+    for (const [k, v] of Object.entries(adminEdits)) {
+      slim[k] = { ...v, img: null };
+    }
+    localStorage.setItem(EDITS_KEY, JSON.stringify(slim));
+  } catch(e) {
+    // Si sigue fallando (muchos datos de texto), limpiar y seguir
+    try { localStorage.removeItem(EDITS_KEY); } catch(_) {}
+    console.warn("localStorage lleno, se omite cache local:", e.message);
+  }
+}
+// Limpiar localStorage viejo si está lleno con imágenes
+try {
+  const raw = localStorage.getItem(EDITS_KEY);
+  if (raw && raw.length > 2_000_000) {
+    localStorage.removeItem(EDITS_KEY);
+    console.log("localStorage viejo limpiado (tenía imágenes)");
+  }
+} catch(_) {}
 adminEdits = loadEditsCache();
 
 async function fetchAdminEdits() {
