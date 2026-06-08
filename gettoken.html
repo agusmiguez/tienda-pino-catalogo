@@ -45,6 +45,22 @@ h2{margin-bottom:6px}p{color:#6b7280;margin-bottom:24px}
   </div>
 </div>
 
+<div class="step" id="stepManual">
+  <h3>🔧 ¿Ya tenés un token? Guardalo directo en el Blob</h3>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:12px">
+    Si ya obtuviste un refresh token (por ejemplo desde Vercel env vars o desde otra sesión), pegalo acá y lo guardamos en el Blob sin necesidad de volver a iniciar sesión.
+  </p>
+  <textarea id="manualTokenInput" placeholder="Pegá el refresh token acá…"
+    style="width:100%;min-height:90px;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-family:monospace;font-size:12px;color:#111827;outline:none;resize:vertical;word-break:break-all;transition:border-color .15s"
+    onfocus="this.style.borderColor='#16a34a'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn" onclick="saveManualToken()">💾 Guardar en Blob</button>
+    <span id="saveStatus" style="font-size:13px;color:#6b7280"></span>
+  </div>
+  <div id="saveResult" style="display:none;margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-size:13px;color:#15803d"></div>
+  <div id="saveError"  style="display:none;margin-top:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;font-size:13px;color:#dc2626"></div>
+</div>
+
 <script>
 const CLIENT_ID = "7c0a9ce5-ed5f-4192-8a38-774d08ffad25";
 const TENANT = "consumers";
@@ -89,6 +105,45 @@ async function handleCallback(){
 function copyToken(){
   navigator.clipboard.writeText(document.getElementById("tokenBox").textContent);
   document.querySelector(".copy-btn").textContent="✓ Copiado!";
+}
+
+async function saveManualToken(){
+  const token = document.getElementById("manualTokenInput").value.trim();
+  const statusEl = document.getElementById("saveStatus");
+  const resultEl = document.getElementById("saveResult");
+  const errorEl  = document.getElementById("saveError");
+
+  resultEl.style.display = "none";
+  errorEl.style.display  = "none";
+
+  if (!token) {
+    errorEl.textContent = "⚠️ Pegá el token antes de guardar.";
+    errorEl.style.display = "block";
+    return;
+  }
+
+  statusEl.textContent = "Guardando…";
+
+  try {
+    const res = await fetch("/api/save-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: token }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.textContent = "";
+      resultEl.innerHTML = "✅ <strong>Token guardado correctamente en el Blob.</strong><br>El catálogo se va a actualizar en la próxima visita.";
+      resultEl.style.display = "block";
+      document.getElementById("manualTokenInput").value = "";
+    } else {
+      throw new Error(data.error || "Error desconocido");
+    }
+  } catch(e) {
+    statusEl.textContent = "";
+    errorEl.textContent = "❌ Error al guardar: " + e.message;
+    errorEl.style.display = "block";
+  }
 }
 
 handleCallback();
