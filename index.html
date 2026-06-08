@@ -1120,40 +1120,68 @@ function onExcelKeyChange() {
 function closeProdModal() { document.getElementById("prodModal").classList.remove("open"); }
 
 async function saveProd() {
-  const name  = document.getElementById("pName").value.trim();
-  const price = parseFloat(document.getElementById("pPrice").value);
-  if (!name) { showToast("El nombre es obligatorio", "err"); return; }
-  if (!price) { showToast("El precio es obligatorio", "err"); return; }
+  const name     = document.getElementById("pName").value.trim();
+  const priceRaw = document.getElementById("pPrice").value.trim();
+  const price    = parseFloat(priceRaw);
 
-  const editId = document.getElementById("pEditId").value;
-  const excelKey = document.getElementById("pExcelKey").value || name;
-  const img = currentImgs.length ? (currentImgs.length === 1 ? currentImgs[0] : currentImgs) : null;
-  const prod = {
-    id:          editId ? parseInt(editId) : nextId(),
-    excelKey,
-    name,
-    cat:         document.getElementById("pCat").value,
-    icon:        CAT_ICONS[document.getElementById("pCat").value] || "📦",
-    description: document.getElementById("pDesc").value,
-    price,
-    cost:        parseFloat(document.getElementById("pCost").value) || 0,
-    sizes:       currentTags,
-    badge:       document.getElementById("pBadge").value || null,
-    img,
-    hidden:      false,
-  };
+  if (!name)           { showToast("El nombre es obligatorio", "err"); return; }
+  if (priceRaw === "") { showToast("El precio es obligatorio", "err"); return; }
+  if (isNaN(price))    { showToast("El precio debe ser un número", "err"); return; }
 
-  if (editId) {
-    const idx = PRODUCTS.findIndex(x => x.id === prod.id);
-    if (idx >= 0) PRODUCTS[idx] = prod;
-  } else {
-    PRODUCTS.push(prod);
+  // Deshabilitar botón para evitar doble click
+  const saveBtn = document.querySelector("#prodModal .ap-primary");
+  const origTxt = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Guardando…";
+
+  try {
+    const editId   = document.getElementById("pEditId").value;
+    const excelKey = document.getElementById("pExcelKey").value || name;
+    const img = currentImgs.length ? (currentImgs.length === 1 ? currentImgs[0] : currentImgs) : null;
+
+    const prod = {
+      id:          editId ? parseInt(editId) : nextId(),
+      excelKey,
+      name,
+      cat:         document.getElementById("pCat").value,
+      icon:        CAT_ICONS[document.getElementById("pCat").value] || "📦",
+      description: document.getElementById("pDesc").value,
+      price,
+      cost:        parseFloat(document.getElementById("pCost").value) || 0,
+      sizes:       [...currentTags],
+      badge:       document.getElementById("pBadge").value || null,
+      img,
+      hidden: editId
+        ? (PRODUCTS.find(x => x.id === parseInt(editId))?.hidden === true)
+        : false,
+    };
+
+    if (editId) {
+      const idx = PRODUCTS.findIndex(x => x.id === prod.id);
+      if (idx >= 0) PRODUCTS[idx] = prod;
+      else PRODUCTS.push(prod);
+    } else {
+      PRODUCTS.push(prod);
+    }
+
+    // Guardar este producto directo en adminEdits
+    adminEdits[prod.excelKey] = {
+      name: prod.name, cat: prod.cat, description: prod.description,
+      price: prod.price, sizes: prod.sizes, badge: prod.badge,
+      img: prod.img, hidden: prod.hidden === true
+    };
+
+    await pushAdminEdits();
+    closeProdModal();
+    renderAdminProds(); renderCatalog(); renderAdminDashboard();
+    showToast("✓ Producto guardado", "ok");
+
+  } catch(e) {
+    showToast("❌ Error al guardar: " + e.message, "err");
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = origTxt;
   }
-
-  await saveData();
-  closeProdModal();
-  renderAdminProds(); renderCatalog(); renderAdminDashboard();
-  showToast("✓ Producto guardado", "ok");
 }
 
 // ── CONFIRM DELETE ───────────────────────
