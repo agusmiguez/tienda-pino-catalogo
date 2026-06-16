@@ -939,24 +939,9 @@ function buildCard(p) {
   inner.appendChild(front);
   inner.appendChild(back);
   scene.appendChild(inner);
-  // Touch: 3-state cycle (photo2 → add-to-cart → reset)
-  // Desktop: click toggles flip only (hover handles photo2)
   scene.addEventListener("click", function(e) {
     if (e.target.closest(".add-btn") || e.target.closest(".sz-btn")) return;
-    const isTouch = window.matchMedia("(pointer:coarse)").matches;
-    if (isTouch) {
-      const hasPhoto2 = this.querySelector(".card-img-secondary");
-      if (!this.classList.contains("show-photo2") && !this.classList.contains("flipped") && hasPhoto2) {
-        this.classList.add("show-photo2");
-      } else if (this.classList.contains("show-photo2")) {
-        this.classList.remove("show-photo2");
-        this.classList.add("flipped");
-      } else {
-        this.classList.remove("flipped");
-      }
-    } else {
-      this.classList.toggle("flipped");
-    }
+    this.classList.toggle("flipped");
   });
   return scene;
 }
