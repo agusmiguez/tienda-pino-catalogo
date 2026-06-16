@@ -75,6 +75,9 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 .front{background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.07);display:flex;flex-direction:column;transition:box-shadow .2s}
 .scene:hover .front{box-shadow:0 6px 20px rgba(0,0,0,.13)}
 .card-img{height:220px;display:flex;align-items:center;justify-content:center;font-size:62px;background:#f3f4f6;position:relative;flex-shrink:0}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .38s ease}
+.card-img-secondary{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .38s ease}
+.scene:hover .card-img-secondary{opacity:1}
 .card-badge{position:absolute;top:9px;left:9px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
 .b-green {background:#dcfce7;color:#15803d}
 .b-blue  {background:#dbeafe;color:#1d4ed8}
@@ -891,8 +894,11 @@ function buildCard(p) {
   const front = document.createElement("div");
   front.className = "front";
   const imgs = Array.isArray(p.img) ? p.img : (p.img ? [p.img] : []);
+  const img2 = imgs.length > 1
+    ? `<img class="card-img-secondary" src="${imgs[1]}" alt="${p.name} - foto 2" loading="lazy">`
+    : '';
   const imgHtml = imgs.length
-    ? `<img src="${imgs[0]}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">`
+    ? `<img src="${imgs[0]}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">${img2}`
     : `<span>${p.icon || "📦"}</span>`;
   const bc = p.badge ? (BADGE_CLS[p.badge] || "b-green") : "";
   const bh = p.badge ? `<span class="card-badge ${bc}">${p.badge}</span>` : "";
