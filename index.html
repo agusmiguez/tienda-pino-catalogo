@@ -68,7 +68,7 @@ body{font-family:"Bricolage Grotesque",sans-serif;background:#f9fafb;color:#1118
 /* ── CARD FLIP 3D ── */
 .scene{width:200px;height:320px;flex-shrink:0;cursor:pointer}
 .inner{position:relative;width:100%;height:320px;transition:transform 0.5s var(--ease-out-quart);transform-style:preserve-3d}
-.scene:hover .inner,.scene.flipped .inner{transform:rotateY(180deg)}
+.scene.flipped .inner{transform:rotateY(180deg)}
 .front,.back{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
 
 /* FRENTE */
@@ -939,6 +939,11 @@ function buildCard(p) {
   inner.appendChild(front);
   inner.appendChild(back);
   scene.appendChild(inner);
+  scene.addEventListener("click", function(e) {
+    // Don't toggle when clicking buttons inside back face
+    if (e.target.closest(".add-btn") || e.target.closest(".sz-btn")) return;
+    this.classList.toggle("flipped");
+  });
   return scene;
 }
 
